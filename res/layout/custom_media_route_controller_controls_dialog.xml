@@ -42,7 +42,7 @@
         android:layout_alignParentRight="true"
         android:layout_centerVertical="true"
         android:layout_marginRight="9dp"
-        android:src="@drawable/ic_av_pause_sm_dark"/>
+        android:src="@drawable/ic_media_route_controller_pause"/>
 
     <ProgressBar
         android:id="@+id/loadingView"
