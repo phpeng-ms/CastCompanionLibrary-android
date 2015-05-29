@@ -19,6 +19,7 @@ package com.google.android.libraries.cast.companionlibrary.notification;
 import static com.google.android.libraries.cast.companionlibrary.utils.LogUtils.LOGD;
 import static com.google.android.libraries.cast.companionlibrary.utils.LogUtils.LOGE;
 
+import com.google.android.gms.cast.CastStatusCodes;
 import com.google.android.gms.cast.MediaInfo;
 import com.google.android.gms.cast.MediaMetadata;
 import com.google.android.gms.cast.MediaStatus;
@@ -49,6 +50,7 @@ import android.os.IBinder;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.TaskStackBuilder;
 import android.util.Log;
+import android.view.View;
 import android.widget.RemoteViews;
 
 /**
@@ -107,10 +109,14 @@ public class VideoCastNotificationService extends Service {
             }
 
             @Override
-            public void onUiVisibilityChanged(boolean visible) {
-                mVisible = !visible;
-                if (mVisible && (mNotification != null)) {
-                    startForeground(NOTIFICATION_ID, mNotification);
+            public void onMediaLoadResult(int statusCode) {
+                mVisible = CastStatusCodes.SUCCESS == statusCode || CastStatusCodes.REPLACED == statusCode;
+                if (mVisible) {
+                    try {
+                        setUpNotification(mCastManager.getRemoteMediaInformation());
+                    } catch (TransientNetworkDisconnectionException | NoConnectionException e) {
+                        LOGE(TAG, "onMediaLoadResult() failed to get media", e);
+                    }
                 } else {
                     stopForeground(true);
                 }
@@ -236,12 +242,7 @@ public class VideoCastNotificationService extends Service {
                     break;
                 case MediaStatus.PLAYER_STATE_IDLE: // (== 1)
                     mIsPlaying = false;
-                    if (!mCastManager.shouldRemoteUiBeVisible(mediaStatus,
-                            mCastManager.getIdleReason())) {
-                        stopForeground(true);
-                    } else {
-                        setUpNotification(mCastManager.getRemoteMediaInformation());
-                    }
+                    stopForeground(true);
                     break;
                 case MediaStatus.PLAYER_STATE_UNKNOWN: // (== 0)
                     mIsPlaying = false;
@@ -317,6 +318,7 @@ public class VideoCastNotificationService extends Service {
         String castingTo = getResources().getString(R.string.ccl_casting_to_device,
                 mCastManager.getDeviceName());
         rv.setTextViewText(R.id.subtitle_view, castingTo);
+        rv.setViewVisibility(R.id.play_pause, mCastManager.isRemoteMediaLoaded() ? View.VISIBLE : View.GONE);
         mNotification = new NotificationCompat.Builder(this)
                 .setSmallIcon(R.drawable.ic_cast_notification_icon)
                 .setContentIntent(resultPendingIntent)
@@ -365,21 +367,22 @@ public class VideoCastNotificationService extends Service {
         PendingIntent contentPendingIntent =
                 stackBuilder.getPendingIntent(NOTIFICATION_ID, PendingIntent.FLAG_UPDATE_CURRENT);
 
-        mNotification = new Notification.Builder(this)
+        Notification.Builder builder = new Notification.Builder(this)
                 .setSmallIcon(R.drawable.ic_cast_notification_icon)
                 .setContentTitle(metadata.getString(MediaMetadata.KEY_TITLE))
                 .setContentText(castingTo)
                 .setContentIntent(contentPendingIntent)
                 .setLargeIcon(bitmap)
-                .addAction(isPlaying ? R.drawable.ic_pause_white_48dp
-                                : R.drawable.ic_play_arrow_white_48dp,
-                        getString(R.string.ccl_pause), playbackPendingIntent)
-                .addAction(R.drawable.ic_clear_white_24dp, getString(R.string.ccl_disconnect), stopPendingIntent)
                 .setStyle(new Notification.MediaStyle().setShowActionsInCompactView(0, 1))
                 .setOngoing(true)
                 .setShowWhen(false)
-                .setVisibility(Notification.VISIBILITY_PUBLIC)
-                .build();
+                .setVisibility(Notification.VISIBILITY_PUBLIC);
+        if (mCastManager.isRemoteMediaLoaded()) {
+            builder.addAction(isPlaying ? R.drawable.ic_pause_white_24dp : R.drawable.ic_play_arrow_white_24dp,
+                    getString(R.string.ccl_pause), playbackPendingIntent);
+        }
+        builder.addAction(R.drawable.ic_clear_white_24dp, getString(R.string.ccl_disconnect), stopPendingIntent);
+        mNotification = builder.build();
 
     }
 
@@ -400,11 +403,11 @@ public class VideoCastNotificationService extends Service {
             if (info.getStreamType() == MediaInfo.STREAM_TYPE_LIVE) {
                 rv.setImageViewResource(R.id.play_pause, R.drawable.ic_av_stop_sm_dark);
             } else {
-                rv.setImageViewResource(R.id.play_pause, R.drawable.ic_av_pause_sm_dark);
+                rv.setImageViewResource(R.id.play_pause, R.drawable.ic_pause_white_24dp);
             }
 
         } else {
-            rv.setImageViewResource(R.id.play_pause, R.drawable.ic_av_play_sm_dark);
+            rv.setImageViewResource(R.id.play_pause, R.drawable.ic_play_arrow_white_24dp);
         }
     }
 

@@ -760,7 +760,7 @@ public class VideoCastManager extends BaseCastManager
         Intent service = new Intent(mContext, VideoCastNotificationService.class);
         service.setPackage(mContext.getPackageName());
         service.setAction(VideoCastNotificationService.ACTION_VISIBILITY);
-        service.putExtra(VideoCastNotificationService.NOTIFICATION_VISIBILITY, !mUiVisible);
+        service.putExtra(VideoCastNotificationService.NOTIFICATION_VISIBILITY, true);
         return mContext.startService(service) != null;
     }
 
@@ -769,6 +769,7 @@ public class VideoCastManager extends BaseCastManager
             return;
         }
         if (mContext != null) {
+            LOGD(TAG, "stopNotificationService()");
             mContext.stopService(new Intent(mContext, VideoCastNotificationService.class));
         }
     }
@@ -1441,11 +1442,9 @@ public class VideoCastManager extends BaseCastManager
                 updateRemoteControl(true);
                 long mediaDurationLeft = getMediaTimeRemaining();
                 startReconnectionService(mediaDurationLeft);
-                startNotificationService();
             } else if (mState == MediaStatus.PLAYER_STATE_PAUSED) {
                 LOGD(TAG, "onRemoteMediaPlayerStatusUpdated(): Player status = paused");
                 updateRemoteControl(false);
-                startNotificationService();
             } else if (mState == MediaStatus.PLAYER_STATE_IDLE) {
                 LOGD(TAG, "onRemoteMediaPlayerStatusUpdated(): Player status = idle");
                 updateRemoteControl(false);
@@ -1480,9 +1479,6 @@ public class VideoCastManager extends BaseCastManager
             } else {
                 LOGD(TAG, "onRemoteMediaPlayerStatusUpdated(): Player status = unknown");
                 makeUiHidden = true;
-            }
-            if (makeUiHidden) {
-                stopNotificationService();
             }
             updateMiniControllersVisibility(!makeUiHidden);
             updateMiniControllers();
