@@ -1449,6 +1449,9 @@ public class VideoCastManager extends BaseCastManager
                         LOGD(TAG, "onRemoteMediaPlayerStatusUpdated(): IDLE reason = CANCELLED");
                         makeUiHidden = !isRemoteStreamLive();
                         break;
+                    case MediaStatus.IDLE_REASON_INTERRUPTED:
+                        LOGD(TAG, "onRemoteMediaPlayerStatusUpdated(): IDLE reason = INTERRUPTED");
+                        break;
                     default:
                         LOGE(TAG, "onRemoteMediaPlayerStatusUpdated(): Unexpected Idle Reason "
                                 + mIdleReason);
