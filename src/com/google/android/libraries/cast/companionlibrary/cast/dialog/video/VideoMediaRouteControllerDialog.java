@@ -177,15 +177,15 @@ public class VideoMediaRouteControllerDialog extends MediaRouteControllerDialog 
             mFetchBitmap.cancel(true);
         }
 
-        mFetchBitmap = new FetchBitmapTask() {
+        mFetchBitmap = mCastManager.createFetchBitmapTask(new VideoCastManager.FetchBitmapTaskHandler() {
             @Override
-            protected void onPostExecute(Bitmap bitmap) {
+            public void onBitmapLoad(FetchBitmapTask task, Bitmap bitmap) {
                 mIcon.setImageBitmap(bitmap);
-                if (this == mFetchBitmap) {
+                if (task == mFetchBitmap) {
                     mFetchBitmap = null;
                 }
             }
-        };
+        });
 
         mFetchBitmap.execute(mIconUri);
     }

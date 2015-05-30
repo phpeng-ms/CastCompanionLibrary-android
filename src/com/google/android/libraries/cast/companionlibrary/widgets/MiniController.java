@@ -172,19 +172,19 @@ public class MiniController extends RelativeLayout implements IMiniController {
         if (mFetchBitmapTask != null) {
             mFetchBitmapTask.cancel(true);
         }
-        mFetchBitmapTask = new FetchBitmapTask() {
+        mFetchBitmapTask = VideoCastManager.getInstance().createFetchBitmapTask(new VideoCastManager.FetchBitmapTaskHandler() {
             @Override
-            protected void onPostExecute(Bitmap bitmap) {
+            public void onBitmapLoad(FetchBitmapTask task, Bitmap bitmap) {
                 if (bitmap == null) {
                     bitmap = BitmapFactory.decodeResource(getResources(),
                             R.drawable.album_art_placeholder);
                 }
                 setIcon(bitmap);
-                if (this == mFetchBitmapTask) {
+                if (task == mFetchBitmapTask) {
                     mFetchBitmapTask = null;
                 }
             }
-        };
+        });
 
         mFetchBitmapTask.execute(uri);
     }

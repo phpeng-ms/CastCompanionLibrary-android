@@ -1581,17 +1581,16 @@ public class VideoCastManager extends BaseCastManager
                     RemoteControlClientCompat.MetadataEditorCompat.
                             METADATA_KEY_ARTWORK, bm).apply();
         } else {
-
-            new FetchBitmapTask() {
+            createFetchBitmapTask(new FetchBitmapTaskHandler() {
                 @Override
-                protected void onPostExecute(Bitmap bitmap) {
+                public void onBitmapLoad(FetchBitmapTask task, Bitmap bitmap) {
                     if (mRemoteControlClientCompat != null) {
                         mRemoteControlClientCompat.editMetadata(false).putBitmap(
                                 RemoteControlClientCompat.MetadataEditorCompat.
                                         METADATA_KEY_ARTWORK, bitmap).apply();
                     }
                 }
-            }.execute(imgUrl);
+            }).execute(imgUrl);
         }
     }
     /*
@@ -2115,4 +2114,24 @@ public class VideoCastManager extends BaseCastManager
         }
     }
 
+    /**
+     * Create a FetchBitmapTask
+     *
+     * @param handler the handler that will be invoked when the bitmap is loaded
+     */
+    public FetchBitmapTask createFetchBitmapTask(final FetchBitmapTaskHandler handler) {
+        return new FetchBitmapTask() {
+            @Override
+            protected void onPostExecute(Bitmap bitmap) {
+                handler.onBitmapLoad(this, bitmap);
+            }
+        };
+    }
+
+    /**
+     * Interface for handling
+     */
+    public interface FetchBitmapTaskHandler {
+        void onBitmapLoad(FetchBitmapTask task, Bitmap bitmap);
+    }
 }

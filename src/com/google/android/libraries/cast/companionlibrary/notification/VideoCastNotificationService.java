@@ -183,9 +183,9 @@ public class VideoCastNotificationService extends Service {
         } catch (CastException e) {
             LOGE(TAG, "Failed to build notification", e);
         }
-        mBitmapDecoderTask = new FetchBitmapTask() {
+        mBitmapDecoderTask = mCastManager.createFetchBitmapTask(new VideoCastManager.FetchBitmapTaskHandler() {
             @Override
-            protected void onPostExecute(Bitmap bitmap) {
+            public void onBitmapLoad(FetchBitmapTask task, Bitmap bitmap) {
                 try {
                     mVideoArtBitmap = Utils.scaleAndCenterCropBitmap(bitmap, mDimensionInPixels,
                             mDimensionInPixels);
@@ -197,11 +197,11 @@ public class VideoCastNotificationService extends Service {
                 if (mVisible) {
                     startForeground(NOTIFICATION_ID, mNotification);
                 }
-                if (this == mBitmapDecoderTask) {
+                if (task == mBitmapDecoderTask) {
                     mBitmapDecoderTask = null;
                 }
             }
-        };
+        });
         mBitmapDecoderTask.execute(imgUri);
     }
 

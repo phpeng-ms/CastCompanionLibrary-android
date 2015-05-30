@@ -542,20 +542,20 @@ public class VideoCastControllerFragment extends Fragment implements OnVideoCast
             return;
         }
         mUrlAndBitmap = null;
-        mImageAsyncTask = new FetchBitmapTask() {
+        mImageAsyncTask = mCastManager.createFetchBitmapTask(new VideoCastManager.FetchBitmapTaskHandler() {
             @Override
-            protected void onPostExecute(Bitmap bitmap) {
+            public void onBitmapLoad(FetchBitmapTask task, Bitmap bitmap) {
                 if (bitmap != null) {
                     mUrlAndBitmap = new UrlAndBitmap();
                     mUrlAndBitmap.mBitmap = bitmap;
                     mUrlAndBitmap.mUrl = uri;
                     mCastController.setImage(bitmap);
                 }
-                if (this == mImageAsyncTask) {
+                if (task == mImageAsyncTask) {
                     mImageAsyncTask = null;
                 }
             }
-        };
+        });
         mImageAsyncTask.execute(uri);
     }
 
