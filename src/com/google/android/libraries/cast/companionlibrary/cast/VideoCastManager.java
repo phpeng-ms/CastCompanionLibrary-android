@@ -168,6 +168,7 @@ public class VideoCastManager extends BaseCastManager
     private VolumeType mVolumeType = VolumeType.DEVICE;
     private int mState = MediaStatus.PLAYER_STATE_IDLE;
     private int mIdleReason;
+    private int mCastStatusCode;
     private String mDataNamespace;
     private Cast.MessageReceivedCallback mDataChannel;
     private final Set<VideoCastConsumer> mVideoConsumers = new CopyOnWriteArraySet<>();
@@ -987,8 +988,9 @@ public class VideoCastManager extends BaseCastManager
 
                     @Override
                     public void onResult(MediaChannelResult result) {
+                        mCastStatusCode = result.getStatus().getStatusCode();
                         for (VideoCastConsumer consumer : mVideoConsumers) {
-                            consumer.onMediaLoadResult(result.getStatus().getStatusCode());
+                            consumer.onMediaLoadResult(mCastStatusCode);
                         }
                     }
                 });
@@ -1307,6 +1309,13 @@ public class VideoCastManager extends BaseCastManager
      */
     public int getIdleReason() {
         return mIdleReason;
+    }
+
+    /**
+     * Returns the cast status code, defined in <code>CastStatusCodes</code>.
+     */
+    public int getCastStatusCode() {
+        return mCastStatusCode;
     }
 
     /*

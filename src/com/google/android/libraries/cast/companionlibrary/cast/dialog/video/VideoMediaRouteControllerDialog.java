@@ -18,6 +18,7 @@ package com.google.android.libraries.cast.companionlibrary.cast.dialog.video;
 
 import static com.google.android.libraries.cast.companionlibrary.utils.LogUtils.LOGE;
 
+import com.google.android.gms.cast.CastStatusCodes;
 import com.google.android.gms.cast.MediaInfo;
 import com.google.android.gms.cast.MediaMetadata;
 import com.google.android.gms.cast.MediaStatus;
@@ -143,9 +144,12 @@ public class VideoMediaRouteControllerDialog extends MediaRouteControllerDialog 
     }
 
     private void updateMetadata() {
-        MediaInfo info;
+        MediaInfo info = null;
         try {
-            info = mCastManager.getRemoteMediaInformation();
+            int castStatusCode = mCastManager.getCastStatusCode();
+            if (CastStatusCodes.SUCCESS == castStatusCode || CastStatusCodes.REPLACED == castStatusCode) {
+                info = mCastManager.getRemoteMediaInformation();
+            }
         } catch (TransientNetworkDisconnectionException | NoConnectionException e) {
             hideControls(true, R.string.ccl_failed_no_connection_short);
             return;
