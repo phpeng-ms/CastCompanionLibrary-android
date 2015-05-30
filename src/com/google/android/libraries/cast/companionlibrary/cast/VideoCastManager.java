@@ -242,6 +242,13 @@ public class VideoCastManager extends BaseCastManager
         return sInstance;
     }
 
+    /**
+     * Set the (singleton) instance of this class. This should be called when using an instance that extends from this class
+     */
+    public static void setInstance(VideoCastManager instance) {
+        sInstance = instance;
+    }
+
     @Override
     protected void onFeaturesUpdated(int capabilities) {
         if (isFeatureEnabled(FEATURE_CAPTIONS_PREFERENCE)) {
