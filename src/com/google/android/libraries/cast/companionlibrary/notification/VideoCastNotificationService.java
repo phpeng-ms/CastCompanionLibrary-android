@@ -278,11 +278,14 @@ public class VideoCastNotificationService extends Service {
      */
     private RemoteViews build(MediaInfo info, Bitmap bitmap, boolean isPlaying)
             throws CastException, TransientNetworkDisconnectionException, NoConnectionException {
+        // FIXME: MediaStyle is broken on some devices, just use default
+        /*
         Log.d(TAG, "Build version is: " + Build.VERSION.SDK_INT);
         if (mIsAtLeastLollipop) {
             buildForLollipopAndAbove(info, bitmap, isPlaying);
             return null;
         }
+        */
         Bundle mediaWrapper = Utils.mediaInfoToBundle(mCastManager.getRemoteMediaInformation());
         Intent contentIntent = new Intent(this, mTargetActivity);
 
@@ -373,15 +376,18 @@ public class VideoCastNotificationService extends Service {
                 .setContentText(castingTo)
                 .setContentIntent(contentPendingIntent)
                 .setLargeIcon(bitmap)
-                .setStyle(new Notification.MediaStyle().setShowActionsInCompactView(0, 1))
                 .setOngoing(true)
                 .setShowWhen(false)
                 .setVisibility(Notification.VISIBILITY_PUBLIC);
         if (mCastManager.isRemoteMediaLoaded()) {
             builder.addAction(isPlaying ? R.drawable.ic_pause_white_24dp : R.drawable.ic_play_arrow_white_24dp,
                     getString(R.string.ccl_pause), playbackPendingIntent);
+            builder.addAction(R.drawable.ic_clear_white_24dp, getString(R.string.ccl_disconnect), stopPendingIntent);
+            builder.setStyle(new Notification.MediaStyle().setShowActionsInCompactView(0, 1));
+        } else {
+            builder.addAction(R.drawable.ic_clear_white_24dp, getString(R.string.ccl_disconnect), stopPendingIntent);
+            builder.setStyle(new Notification.MediaStyle().setShowActionsInCompactView(0));
         }
-        builder.addAction(R.drawable.ic_clear_white_24dp, getString(R.string.ccl_disconnect), stopPendingIntent);
         mNotification = builder.build();
 
     }
