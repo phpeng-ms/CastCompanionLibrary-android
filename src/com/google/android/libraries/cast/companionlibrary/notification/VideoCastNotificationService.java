@@ -79,7 +79,6 @@ public class VideoCastNotificationService extends Service {
     private boolean mVisible;
     private boolean mIsAtLeastIcs = Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH;
     private boolean mIsAtLeastLollipop = Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP;
-    private VideoCastManager mCastManager;
     private VideoCastConsumerImpl mConsumer;
     private FetchBitmapTask mBitmapDecoderTask;
     private int mDimensionInPixels;
@@ -89,10 +88,9 @@ public class VideoCastNotificationService extends Service {
         super.onCreate();
         mDimensionInPixels = Utils.convertDpToPixel(VideoCastNotificationService.this,
                 getResources().getDimension(R.dimen.ccl_notification_image_size));
-        mCastManager = VideoCastManager.getInstance();
         readPersistedData();
-        if (!mCastManager.isConnected() && !mCastManager.isConnecting()) {
-            mCastManager.reconnectSessionIfPossible();
+        if (!VideoCastManager.getInstance().isConnected() && !VideoCastManager.getInstance().isConnecting()) {
+            VideoCastManager.getInstance().reconnectSessionIfPossible();
         }
         mConsumer = new VideoCastConsumerImpl() {
             @Override
@@ -104,7 +102,7 @@ public class VideoCastNotificationService extends Service {
 
             @Override
             public void onRemoteMediaPlayerStatusUpdated() {
-                int mediaStatus = mCastManager.getPlaybackStatus();
+                int mediaStatus = VideoCastManager.getInstance().getPlaybackStatus();
                 VideoCastNotificationService.this.onRemoteMediaPlayerStatusUpdated(mediaStatus);
             }
 
@@ -113,7 +111,7 @@ public class VideoCastNotificationService extends Service {
                 mVisible = CastStatusCodes.SUCCESS == statusCode || CastStatusCodes.REPLACED == statusCode;
                 if (mVisible) {
                     try {
-                        setUpNotification(mCastManager.getRemoteMediaInformation());
+                        setUpNotification(VideoCastManager.getInstance().getRemoteMediaInformation());
                     } catch (TransientNetworkDisconnectionException | NoConnectionException e) {
                         LOGE(TAG, "onMediaLoadResult() failed to get media", e);
                     }
@@ -122,7 +120,7 @@ public class VideoCastNotificationService extends Service {
                 }
             }
         };
-        mCastManager.addVideoCastConsumer(mConsumer);
+        VideoCastManager.getInstance().addVideoCastConsumer(mConsumer);
 
     }
 
@@ -151,7 +149,7 @@ public class VideoCastNotificationService extends Service {
                         startForeground(NOTIFICATION_ID, mNotification);
                     } else {
                         try {
-                            setUpNotification(mCastManager.getRemoteMediaInformation());
+                            setUpNotification(VideoCastManager.getInstance().getRemoteMediaInformation());
                         } catch (TransientNetworkDisconnectionException | NoConnectionException e) {
                             LOGE(TAG, "onStartCommand() failed to get media", e);
                         }
@@ -189,7 +187,7 @@ public class VideoCastNotificationService extends Service {
         } catch (CastException e) {
             LOGE(TAG, "Failed to build notification", e);
         }
-        mBitmapDecoderTask = mCastManager.createFetchBitmapTask(new VideoCastManager.FetchBitmapTaskHandler() {
+        mBitmapDecoderTask = VideoCastManager.getInstance().createFetchBitmapTask(new VideoCastManager.FetchBitmapTaskHandler() {
             @Override
             public void onBitmapLoad(FetchBitmapTask task, Bitmap bitmap) {
                 try {
@@ -230,15 +228,15 @@ public class VideoCastNotificationService extends Service {
             switch (mediaStatus) {
                 case MediaStatus.PLAYER_STATE_BUFFERING: // (== 4)
                     mIsPlaying = false;
-                    setUpNotification(mCastManager.getRemoteMediaInformation());
+                    setUpNotification(VideoCastManager.getInstance().getRemoteMediaInformation());
                     break;
                 case MediaStatus.PLAYER_STATE_PLAYING: // (== 2)
                     mIsPlaying = true;
-                    setUpNotification(mCastManager.getRemoteMediaInformation());
+                    setUpNotification(VideoCastManager.getInstance().getRemoteMediaInformation());
                     break;
                 case MediaStatus.PLAYER_STATE_PAUSED: // (== 3)
                     mIsPlaying = false;
-                    setUpNotification(mCastManager.getRemoteMediaInformation());
+                    setUpNotification(VideoCastManager.getInstance().getRemoteMediaInformation());
                     break;
                 case MediaStatus.PLAYER_STATE_IDLE: // (== 1)
                     mIsPlaying = false;
@@ -266,9 +264,8 @@ public class VideoCastNotificationService extends Service {
             mBitmapDecoderTask.cancel(false);
         }
         removeNotification();
-        if (mCastManager != null && mConsumer != null) {
-            mCastManager.removeVideoCastConsumer(mConsumer);
-            mCastManager = null;
+        if (mConsumer != null) {
+            VideoCastManager.getInstance().removeVideoCastConsumer(mConsumer);
         }
     }
 
@@ -286,7 +283,7 @@ public class VideoCastNotificationService extends Service {
             return null;
         }
         */
-        Bundle mediaWrapper = Utils.mediaInfoToBundle(mCastManager.getRemoteMediaInformation());
+        Bundle mediaWrapper = Utils.mediaInfoToBundle(VideoCastManager.getInstance().getRemoteMediaInformation());
         Intent contentIntent = new Intent(this, mTargetActivity);
 
         contentIntent.putExtra("media", mediaWrapper);
@@ -319,9 +316,9 @@ public class VideoCastNotificationService extends Service {
         }
         rv.setTextViewText(R.id.title_view, mm.getString(MediaMetadata.KEY_TITLE));
         String castingTo = getResources().getString(R.string.ccl_casting_to_device,
-                mCastManager.getDeviceName());
+                VideoCastManager.getInstance().getDeviceName());
         rv.setTextViewText(R.id.subtitle_view, castingTo);
-        rv.setViewVisibility(R.id.play_pause, mCastManager.isRemoteMediaLoaded() ? View.VISIBLE : View.GONE);
+        rv.setViewVisibility(R.id.play_pause, VideoCastManager.getInstance().isRemoteMediaLoaded() ? View.VISIBLE : View.GONE);
         mNotification = new NotificationCompat.Builder(this)
                 .setSmallIcon(R.drawable.ic_cast_notification_icon)
                 .setContentIntent(resultPendingIntent)
@@ -353,14 +350,14 @@ public class VideoCastNotificationService extends Service {
         PendingIntent stopPendingIntent = PendingIntent.getBroadcast(this, 0, stopIntent, 0);
 
         // Main Content PendingIntent
-        Bundle mediaWrapper = Utils.mediaInfoToBundle(mCastManager.getRemoteMediaInformation());
+        Bundle mediaWrapper = Utils.mediaInfoToBundle(VideoCastManager.getInstance().getRemoteMediaInformation());
         Intent contentIntent = new Intent(this, mTargetActivity);
         contentIntent.putExtra("media", mediaWrapper);
 
         // Media metadata
         MediaMetadata metadata = info.getMetadata();
         String castingTo = getResources().getString(R.string.ccl_casting_to_device,
-                mCastManager.getDeviceName());
+                VideoCastManager.getInstance().getDeviceName());
         TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
         stackBuilder.addParentStack(mTargetActivity);
         stackBuilder.addNextIntent(contentIntent);
@@ -379,7 +376,7 @@ public class VideoCastNotificationService extends Service {
                 .setOngoing(true)
                 .setShowWhen(false)
                 .setVisibility(Notification.VISIBILITY_PUBLIC);
-        if (mCastManager.isRemoteMediaLoaded()) {
+        if (VideoCastManager.getInstance().isRemoteMediaLoaded()) {
             builder.addAction(isPlaying ? R.drawable.ic_pause_white_24dp : R.drawable.ic_play_arrow_white_24dp,
                     getString(R.string.ccl_pause), playbackPendingIntent);
             builder.addAction(R.drawable.ic_clear_white_24dp, getString(R.string.ccl_disconnect), stopPendingIntent);
@@ -419,7 +416,7 @@ public class VideoCastNotificationService extends Service {
 
     private void togglePlayback() {
         try {
-            mCastManager.togglePlayback();
+            VideoCastManager.getInstance().togglePlayback();
         } catch (Exception e) {
             LOGE(TAG, "Failed to toggle the playback", e);
         }
@@ -432,7 +429,7 @@ public class VideoCastNotificationService extends Service {
     private void stopApplication() {
         try {
             LOGD(TAG, "Calling stopApplication");
-            mCastManager.disconnect();
+            VideoCastManager.getInstance().disconnect();
         } catch (Exception e) {
             LOGE(TAG, "Failed to disconnect application", e);
         }
@@ -443,7 +440,7 @@ public class VideoCastNotificationService extends Service {
      * Reads application ID and target activity from preference storage.
      */
     private void readPersistedData() {
-        String targetName = mCastManager.getPreferenceAccessor().getStringFromPreference(
+        String targetName = VideoCastManager.getInstance().getPreferenceAccessor().getStringFromPreference(
                 VideoCastManager.PREFS_KEY_CAST_ACTIVITY_NAME);
         try {
             if (targetName != null) {

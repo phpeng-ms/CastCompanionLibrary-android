@@ -55,7 +55,6 @@ public class ReconnectionService extends Service {
     private static final long EPSILON_MS = 500;
     private static final int RECONNECTION_ATTEMPT_PERIOD_S = 15;
     private BroadcastReceiver mScreenOnOffBroadcastReceiver;
-    private VideoCastManager mCastManager;
     private BroadcastReceiver mWifiBroadcastReceiver;
     private boolean mWifiConnectivity = true;
     private Timer mEndTimer;
@@ -71,9 +70,8 @@ public class ReconnectionService extends Service {
     @Override
     public void onCreate() {
         LOGD(TAG, "onCreate() is called");
-        mCastManager = VideoCastManager.getInstance();
-        if (!mCastManager.isConnected() && !mCastManager.isConnecting()) {
-            mCastManager.reconnectSessionIfPossible();
+        if (!VideoCastManager.getInstance().isConnected() && !VideoCastManager.getInstance().isConnecting()) {
+            VideoCastManager.getInstance().reconnectSessionIfPossible();
         }
 
         // register a broadcast receiver to be notified when screen goes on or off
@@ -121,9 +119,9 @@ public class ReconnectionService extends Service {
         LOGD(TAG, "WIFI connectivity changed to " + (connected ? "enabled" : "disabled"));
         if (connected && !mWifiConnectivity) {
             mWifiConnectivity = true;
-            if (mCastManager.isFeatureEnabled(BaseCastManager.FEATURE_WIFI_RECONNECT)) {
-                mCastManager.startCastDiscovery();
-                mCastManager.reconnectSessionIfPossible(RECONNECTION_ATTEMPT_PERIOD_S, networkSsid);
+            if (VideoCastManager.getInstance().isFeatureEnabled(BaseCastManager.FEATURE_WIFI_RECONNECT)) {
+                VideoCastManager.getInstance().startCastDiscovery();
+                VideoCastManager.getInstance().reconnectSessionIfPossible(RECONNECTION_ATTEMPT_PERIOD_S, networkSsid);
             }
 
         } else {
@@ -187,23 +185,23 @@ public class ReconnectionService extends Service {
     }
 
     private long getMediaRemainingTime() {
-        long endTime = mCastManager.getPreferenceAccessor().getLongFromPreference(
+        long endTime = VideoCastManager.getInstance().getPreferenceAccessor().getLongFromPreference(
                 BaseCastManager.PREFS_KEY_MEDIA_END, 0);
         return endTime - SystemClock.elapsedRealtime();
     }
 
     private void handleTermination() {
-        if (!mCastManager.isConnected()) {
-            mCastManager.removeRemoteControlClient();
-            mCastManager.clearPersistedConnectionInfo(BaseCastManager.CLEAR_ALL);
+        if (!VideoCastManager.getInstance().isConnected()) {
+            VideoCastManager.getInstance().removeRemoteControlClient();
+            VideoCastManager.getInstance().clearPersistedConnectionInfo(BaseCastManager.CLEAR_ALL);
             stopSelf();
         } else {
             // since we are connected and our timer has gone off, lets update the time remaining
             // on the media (since media may have been paused) and reset teh time left
             long timeLeft = 0;
             try {
-                timeLeft = mCastManager.isRemoteStreamLive() ? 0
-                        : mCastManager.getMediaTimeRemaining();
+                timeLeft = VideoCastManager.getInstance().isRemoteStreamLive() ? 0
+                        : VideoCastManager.getInstance().getMediaTimeRemaining();
 
             } catch (TransientNetworkDisconnectionException | NoConnectionException e) {
                 LOGE(TAG, "Failed to calculate the time left for media due to lack of connectivity",
@@ -214,7 +212,7 @@ public class ReconnectionService extends Service {
                 stopSelf();
             } else {
                 // lets reset the counter
-                mCastManager.getPreferenceAccessor().saveLongToPreference(
+                VideoCastManager.getInstance().getPreferenceAccessor().saveLongToPreference(
                         BaseCastManager.PREFS_KEY_MEDIA_END,
                         timeLeft + SystemClock.elapsedRealtime());
                 LOGD(TAG, "handleTermination(): resetting the timer");
