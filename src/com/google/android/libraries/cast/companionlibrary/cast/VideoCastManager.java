@@ -63,6 +63,7 @@ import com.google.android.libraries.cast.companionlibrary.widgets.MiniController
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -100,7 +101,7 @@ import java.util.concurrent.TimeUnit;
  * needed).
  * <p>
  * Clients need to initialize this class by calling
- * {@link #initialize(android.content.Context, String, Class, String)} and implement
+ * {@link #initialize(android.content.Context, String, Class, Class, String)} and implement
  * the abstracts methods defined here. To access the (singleton) instance of this class, clients
  * need to call {@link #getInstance()}. After acquiring an instance,  callers can enable a
  * number of features (all features are turned off by default). To do so, call
@@ -159,6 +160,7 @@ public class VideoCastManager extends BaseCastManager
     private static final String TAG = LogUtils.makeLogTag(VideoCastManager.class);
     private static VideoCastManager sInstance;
     private Class<?> mTargetActivity;
+    private Class<? extends BroadcastReceiver> mRemoteControlReceiver;
     private final Set<IMiniController> mMiniControllers = Collections
             .synchronizedSet(new HashSet<IMiniController>());
     private AudioManager mAudioManager;
@@ -193,7 +195,7 @@ public class VideoCastManager extends BaseCastManager
     private VideoCastManager() {
     }
 
-    protected VideoCastManager(Context context, String applicationId, Class<?> targetActivity,
+    protected VideoCastManager(Context context, String applicationId, Class<?> targetActivity, Class<? extends BroadcastReceiver> remoteControlReceiver,
             String dataNamespace) {
         super(context, applicationId);
         LOGD(TAG, "VideoCastManager is instantiated");
@@ -202,6 +204,10 @@ public class VideoCastManager extends BaseCastManager
             targetActivity = VideoCastControllerActivity.class;
         }
         mTargetActivity = targetActivity;
+        if (remoteControlReceiver == null) {
+            remoteControlReceiver = VideoIntentReceiver.class;
+        }
+        mRemoteControlReceiver = remoteControlReceiver;
         mPreferenceAccessor.saveStringToPreference(PREFS_KEY_CAST_ACTIVITY_NAME,
                 mTargetActivity.getName());
         if (!TextUtils.isEmpty(mDataNamespace)) {
@@ -210,11 +216,11 @@ public class VideoCastManager extends BaseCastManager
         }
 
         mAudioManager = (AudioManager) mContext.getSystemService(Context.AUDIO_SERVICE);
-        mMediaButtonReceiverComponent = new ComponentName(mContext, VideoIntentReceiver.class);
+        mMediaButtonReceiverComponent = new ComponentName(mContext, mRemoteControlReceiver);
     }
 
     public static synchronized VideoCastManager initialize(Context context,
-            String applicationId, Class<?> targetActivity, String dataNamespace) {
+            String applicationId, Class<?> targetActivity, Class<? extends BroadcastReceiver> remoteControlReceiver, String dataNamespace) {
         if (sInstance == null) {
             LOGD(TAG, "New instance of VideoCastManager is created");
             if (ConnectionResult.SUCCESS != GooglePlayServicesUtil
@@ -222,7 +228,7 @@ public class VideoCastManager extends BaseCastManager
                 String msg = "Couldn't find the appropriate version of Google Play Services";
                 LOGE(TAG, msg);
             }
-            sInstance = new VideoCastManager(context, applicationId, targetActivity, dataNamespace);
+            sInstance = new VideoCastManager(context, applicationId, targetActivity, remoteControlReceiver, dataNamespace);
         }
         return sInstance;
     }
@@ -1521,7 +1527,7 @@ public class VideoCastManager extends BaseCastManager
         mAudioManager.requestAudioFocus(null, AudioManager.STREAM_MUSIC,
                 AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK);
 
-        mMediaEventReceiver = new ComponentName(mContext, VideoIntentReceiver.class.getName());
+        mMediaEventReceiver = new ComponentName(mContext, mRemoteControlReceiver);
         mAudioManager.registerMediaButtonEventReceiver(mMediaEventReceiver);
 
         if (mRemoteControlClientCompat == null) {
