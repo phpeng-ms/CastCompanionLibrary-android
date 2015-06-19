@@ -29,7 +29,6 @@ import com.google.android.libraries.cast.companionlibrary.cast.callbacks.VideoCa
 import com.google.android.libraries.cast.companionlibrary.cast.exceptions.CastException;
 import com.google.android.libraries.cast.companionlibrary.cast.exceptions.NoConnectionException;
 import com.google.android.libraries.cast.companionlibrary.cast.exceptions.TransientNetworkDisconnectionException;
-import com.google.android.libraries.cast.companionlibrary.cast.player.VideoCastControllerActivity;
 import com.google.android.libraries.cast.companionlibrary.utils.FetchBitmapTask;
 import com.google.android.libraries.cast.companionlibrary.utils.LogUtils;
 import com.google.android.libraries.cast.companionlibrary.utils.Utils;
@@ -49,7 +48,6 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.TaskStackBuilder;
-import android.util.Log;
 import android.view.View;
 import android.widget.RemoteViews;
 
@@ -73,7 +71,6 @@ public class VideoCastNotificationService extends Service {
 
     private Bitmap mVideoArtBitmap;
     private boolean mIsPlaying;
-    private Class<?> mTargetActivity;
     private int mOldStatus = -1;
     private Notification mNotification;
     private boolean mVisible;
@@ -88,7 +85,6 @@ public class VideoCastNotificationService extends Service {
         super.onCreate();
         mDimensionInPixels = Utils.convertDpToPixel(VideoCastNotificationService.this,
                 getResources().getDimension(R.dimen.ccl_notification_image_size));
-        readPersistedData();
         if (!VideoCastManager.getInstance().isConnected() && !VideoCastManager.getInstance().isConnecting()) {
             VideoCastManager.getInstance().reconnectSessionIfPossible();
         }
@@ -284,13 +280,13 @@ public class VideoCastNotificationService extends Service {
         }
         */
         Bundle mediaWrapper = Utils.mediaInfoToBundle(VideoCastManager.getInstance().getRemoteMediaInformation());
-        Intent contentIntent = new Intent(this, mTargetActivity);
+        Intent contentIntent = new Intent(this, VideoCastManager.getInstance().getTargetActivity());
 
         contentIntent.putExtra("media", mediaWrapper);
 
         TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
 
-        stackBuilder.addParentStack(mTargetActivity);
+        stackBuilder.addParentStack(VideoCastManager.getInstance().getTargetActivity());
 
         stackBuilder.addNextIntent(contentIntent);
         if (stackBuilder.getIntentCount() > 1) {
@@ -351,7 +347,7 @@ public class VideoCastNotificationService extends Service {
 
         // Main Content PendingIntent
         Bundle mediaWrapper = Utils.mediaInfoToBundle(VideoCastManager.getInstance().getRemoteMediaInformation());
-        Intent contentIntent = new Intent(this, mTargetActivity);
+        Intent contentIntent = new Intent(this, VideoCastManager.getInstance().getTargetActivity());
         contentIntent.putExtra("media", mediaWrapper);
 
         // Media metadata
@@ -359,7 +355,7 @@ public class VideoCastNotificationService extends Service {
         String castingTo = getResources().getString(R.string.ccl_casting_to_device,
                 VideoCastManager.getInstance().getDeviceName());
         TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
-        stackBuilder.addParentStack(mTargetActivity);
+        stackBuilder.addParentStack(VideoCastManager.getInstance().getTargetActivity());
         stackBuilder.addNextIntent(contentIntent);
         if (stackBuilder.getIntentCount() > 1) {
             stackBuilder.editIntentAt(1).putExtra("media", mediaWrapper);
@@ -434,23 +430,5 @@ public class VideoCastNotificationService extends Service {
             LOGE(TAG, "Failed to disconnect application", e);
         }
         stopSelf();
-    }
-
-    /*
-     * Reads application ID and target activity from preference storage.
-     */
-    private void readPersistedData() {
-        String targetName = VideoCastManager.getInstance().getPreferenceAccessor().getStringFromPreference(
-                VideoCastManager.PREFS_KEY_CAST_ACTIVITY_NAME);
-        try {
-            if (targetName != null) {
-                mTargetActivity = Class.forName(targetName);
-            } else {
-                mTargetActivity = VideoCastControllerActivity.class;
-            }
-
-        } catch (ClassNotFoundException e) {
-            LOGE(TAG, "Failed to find the targetActivity class", e);
-        }
     }
 }
