@@ -71,6 +71,7 @@ public class MiniController extends RelativeLayout implements IMiniController {
     private int mStreamType = MediaInfo.STREAM_TYPE_BUFFERED;
     private Drawable mStopDrawable;
     private FetchBitmapTask mFetchBitmapTask;
+    private Bitmap mIconBitmap;
 
     public MiniController(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -159,14 +160,14 @@ public class MiniController extends RelativeLayout implements IMiniController {
 
     @Override
     public final void setIcon(Bitmap bm) {
-        mIcon.setImageBitmap(bm);
+        mIconBitmap = bm;
+        mIcon.setImageBitmap(mIconBitmap);
     }
 
     @Override
     public void setIcon(Uri uri) {
-        if (mIconUri != null && mIconUri.equals(uri)) {
-            return;
-        }
+        mIconBitmap = null;
+        mIcon.setImageBitmap(null);
 
         mIconUri = uri;
         if (mFetchBitmapTask != null) {
@@ -195,6 +196,16 @@ public class MiniController extends RelativeLayout implements IMiniController {
         if (mFetchBitmapTask != null) {
             mFetchBitmapTask.cancel(true);
             mFetchBitmapTask = null;
+        }
+    }
+
+    @Override
+    protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        if (mIconBitmap != null) {
+            setIcon(mIconBitmap);
+        } else if (mIconUri != null) {
+            setIcon(mIconUri);
         }
     }
 
