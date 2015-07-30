@@ -211,7 +211,14 @@ public class VideoMediaRouteControllerDialog extends MediaRouteControllerDialog 
 
                     if (mState == MediaStatus.PLAYER_STATE_IDLE
                             && mCastManager.getIdleReason() == MediaStatus.IDLE_REASON_FINISHED) {
-                        hideControls(true, R.string.ccl_no_media_info);
+                        MediaInfo info = null;
+                        try {
+                            info = mCastManager.getRemoteMediaInformation();
+                        } catch (TransientNetworkDisconnectionException | NoConnectionException e) {
+                        }
+                        if (info == null || MediaMetadata.MEDIA_TYPE_PHOTO != info.getMetadata().getMediaType()) {
+                            hideControls(true, R.string.ccl_no_media_info);
+                        }
                     } else {
                         switch (mStreamType) {
                             case MediaInfo.STREAM_TYPE_BUFFERED:
