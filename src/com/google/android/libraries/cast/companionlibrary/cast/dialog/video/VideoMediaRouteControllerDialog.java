@@ -140,6 +140,7 @@ public class VideoMediaRouteControllerDialog extends MediaRouteControllerDialog 
         mEmptyText.setVisibility(hide ? View.VISIBLE : View.GONE);
         if (hide) {
             mPausePlay.setVisibility(visibility);
+            mState = MediaStatus.PLAYER_STATE_UNKNOWN;
         }
     }
 
